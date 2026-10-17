@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastrar loja | StockPro</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}">
+</head>
+<body>
+    <header><h1>Stock<span>Pro</span></h1><p>Configure sua loja para começar</p></header>
+    <main>
+        <section>
+            <h2>Cadastro da loja</h2>
+            <p>Crie sua conta para guardar os dados da loja e do estoque.</p>
+            {% with mensagens = get_flashed_messages() %}
+                {% for mensagem in mensagens %}<p class="mensagem">{{ mensagem }}</p>{% endfor %}
+            {% endwith %}
+            <form method="POST">
+                <label for="nome">Nome da loja</label>
+                <input id="nome" name="nome" required>
+                <label for="cnpj">CNPJ da loja</label>
+                <input id="cnpj" name="cnpj" placeholder="00.000.000/0000-00" required>
+                <label for="proprietario">Nome do proprietário</label>
+                <input id="proprietario" name="proprietario" required>
+                <label for="contato">Contato do proprietário</label>
+                <input id="contato" name="contato" placeholder="Telefone ou e-mail" required>
+                <label for="senha">Criar senha (mínimo 8 caracteres)</label>
+                <input id="senha" name="senha" type="password" minlength="8" autocomplete="new-password" required>
+                <label for="confirmar_senha">Confirmar senha</label>
+                <input id="confirmar_senha" name="confirmar_senha" type="password" minlength="8" autocomplete="new-password" required>
+                <button type="submit">Cadastrar minha loja</button>
+            </form>
+            <p>Já tem uma conta? <a href="{{ url_for('login') }}">Entrar</a></p>
+        </section>
+    </main>
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockPro | Controle de Estoque</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header>
+        <h1>StockPro</h1>
+        <p>Sistema de Controle de Estoque</p>
+    </header>
+
+    <main>
+    {% with mensagens = get_flashed_messages() %}
+            {% if mensagens %}
+                <ul class="mensagens">
+                    {% for mensagem in mensagens %}
+                        <li>{{ mensagem }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+
+        <section class="formulario">
+            <h2>Adicionar Produto</h2>
+            <form action="{{ url_for('adicionar_produto') }}" method="post">
+                <label for="nome">Nome do Produto:</label>
+                <input type="text" id="nome" name="nome" required>
+
+                <label for="quantidade">Quantidade:</label>
+                <input type="number" id="quantidade" name="quantidade" required>
+
+                <label for="preco">Preço:</label>
+                <input type="number" step="0.01" id="preco" name="preco" required>
+
+                <button type="submit">Adicionar</button>
+            </form>
+        </section>
+
+        <section class="lista-produtos">
+            <h2>Lista de Produtos</h2>
+            {% if produtos %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Quantidade</th>
+                            <th>Preço</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                        
+<tbody>
+    {% for produto in produtos %}
+        <tr>
+            <td>{{ produto["nome"] }}</td>
+            <td>{{ produto["quantidade"] }}</td>
+            <td>R$ {{ "%.2f"|format(produto["preco"]) }}</td>
+            <td>
+                <form action="{{ url_for('atualizar_produtos') }}"
+                    method="POST">
+                    <input type="hidden" name="nome"
+                        value="{{ produto['Nome'] }}">
+
+                    <input type="number" name="quantidade"
+                        min="1" step="1" required
+                        placeholder="Unidades">
+
+                    <button type="submit">Adicionar unidades</button>
+                </form>
+            </td>
+        </tr>
+    {% endfor %}
+</tbody>                                                                        
+                </table>
+            {% else %}
+                <p>Nenhum produto cadastrado.</p>
+            {% endif %}
+        </section>
+    </main>
+</body>
+</html>

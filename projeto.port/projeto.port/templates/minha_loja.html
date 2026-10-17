@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minha loja | StockPro</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}">
+</head>
+<body>
+    <header><h1>Stock<span>Pro</span></h1><p>Informações da sua loja</p></header>
+    <main>
+        <section>
+            <h2>Minha loja</h2>
+            <p>Consulte ou atualize os dados do seu estabelecimento.</p>
+            {% with mensagens = get_flashed_messages() %}
+                {% for mensagem in mensagens %}<p class="mensagem">{{ mensagem }}</p>{% endfor %}
+            {% endwith %}
+            <form method="POST">
+                <label for="nome">Nome da loja</label>
+                <input id="nome" name="nome" value="{{ loja['nome'] }}" required>
+                <label for="cnpj">CNPJ</label>
+                <input id="cnpj" name="cnpj" value="{{ loja['cnpj'] }}" required>
+                <label for="proprietario">Nome do proprietário</label>
+                <input id="proprietario" name="proprietario" value="{{ loja['proprietario'] }}" required>
+                <label for="contato">Contato do proprietário</label>
+                <input id="contato" name="contato" value="{{ loja['contato'] }}" required>
+                <button type="submit">Salvar alterações</button>
+            </form>
+            <form action="{{ url_for('sair_da_conta') }}" method="POST">
+                <button type="submit" class="botao">Sair da conta</button>
+            </form>
+            <p><a href="{{ url_for('pagina_inicial') }}">Voltar ao início</a></p>
+        </section>
+    </main>
+</body>
+</html>
