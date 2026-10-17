@@ -1,0 +1,548 @@
+
+import os
+import sqlite3
+from pathlib import Path
+from functools import wraps
+
+from flask import (
+    Flask, render_template, request, redirect,
+    url_for, flash, session
+)
+from werkzeug.security import generate_password_hash, check_password_hash
+
+app = Flask(__name__)
+app.secret_key = os.environ.get(
+    "STOCKPRO_SECRET_KEY",
+    "troque-esta-chave-por-uma-chave-privada"
+)
+
+BANCO = Path(__file__).resolve().parent / "stockpro.db"
+
+
+def conectar():
+    conexao = sqlite3.connect(str(BANCO))
+    conexao.row_factory = sqlite3.Row
+    conexao.execute("PRAGMA foreign_keys = ON")
+    return conexao
+
+
+def iniciar_banco():
+    with conectar() as banco:
+        banco.executescript("""
+            CREATE TABLE IF NOT EXISTS loja (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nome TEXT NOT NULL,
+                cnpj TEXT NOT NULL UNIQUE,
+                proprietario TEXT NOT NULL,
+                contato TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS estoque (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                loja_id INTEGER NOT NULL UNIQUE,
+                criado_em TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (loja_id) REFERENCES loja(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS produtos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                estoque_id INTEGER NOT NULL,
+                nome TEXT NOT NULL,
+                preco REAL NOT NULL CHECK (preco > 0),
+                quantidade INTEGER NOT NULL CHECK (quantidade >= 0),
+                FOREIGN KEY (estoque_id) REFERENCES estoque(id),
+                UNIQUE (estoque_id, nome)
+            );
+        """)
+
+        # Adiciona a coluna de senha sem apagar os dados antigos.
+        colunas = {
+            linha["name"]
+            for linha in banco.execute(
+                "PRAGMA table_info(loja)"
+            ).fetchall()
+        }
+
+        if "senha_hash" not in colunas:
+            banco.execute(
+                "ALTER TABLE loja ADD COLUMN senha_hash TEXT"
+            )
+
+
+def obter_loja():
+    loja_id = session.get("loja_id")
+
+    if not loja_id:
+        return None
+
+    with conectar() as banco:
+        return banco.execute(
+            "SELECT * FROM loja WHERE id = ?",
+            (loja_id,)
+        ).fetchone()
+
+
+def obter_estoque():
+    loja = obter_loja()
+
+    if loja is None:
+        return None
+
+    with conectar() as banco:
+        return banco.execute(
+            "SELECT * FROM estoque WHERE loja_id = ?",
+            (loja["id"],)
+        ).fetchone()
+
+
+def exigir_login(funcao):
+    @wraps(funcao)
+    def wrapper(*args, **kwargs):
+        if obter_loja() is None:
+            flash("Entre na sua conta para continuar.")
+            return redirect(url_for("login"))
+
+        return funcao(*args, **kwargs)
+
+    return wrapper
+
+
+@app.route("/")
+def pagina_inicial():
+    loja = obter_loja()
+    estoque = obter_estoque()
+
+    return render_template(
+        "home.html",
+        loja=loja,
+        estoque=estoque
+    )
+
+
+@app.route("/cadastrar-loja", methods=["GET", "POST"])
+def cadastrar_loja():
+    if obter_loja() is not None:
+        return redirect(url_for("pagina_inicial"))
+
+    if request.method == "POST":
+        nome = request.form.get("nome", "").strip()
+        cnpj = request.form.get("cnpj", "").strip()
+        proprietario = request.form.get("proprietario", "").strip()
+        contato = request.form.get("contato", "").strip()
+        senha = request.form.get("senha", "")
+        confirmar_senha = request.form.get("confirmar_senha", "")
+
+        if not all([
+            nome, cnpj, proprietario, contato,
+            senha, confirmar_senha
+        ]):
+            flash("Preencha todos os campos.")
+            return render_template("loja.html")
+
+        if len(senha) < 8:
+            flash("A senha deve ter pelo menos 8 caracteres.")
+            return render_template("loja.html")
+
+        if senha != confirmar_senha:
+            flash("As senhas não coincidem.")
+            return render_template("loja.html")
+
+        try:
+            with conectar() as banco:
+                cursor = banco.execute(
+                    """
+                    INSERT INTO loja
+                    (nome, cnpj, proprietario, contato, senha_hash)
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                    (
+                        nome,
+                        cnpj,
+                        proprietario,
+                        contato,
+                        generate_password_hash(senha)
+                    )
+                )
+                nova_loja_id = cursor.lastrowid
+
+            session.clear()
+            session["loja_id"] = nova_loja_id
+
+            flash("Loja cadastrada com sucesso!")
+            return redirect(url_for("pagina_inicial"))
+
+        except sqlite3.IntegrityError:
+            flash("Esse CNPJ já está cadastrado.")
+
+    return render_template("loja.html")
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if obter_loja() is not None:
+        return redirect(url_for("pagina_inicial"))
+
+    if request.method == "POST":
+        cnpj = request.form.get("cnpj", "").strip()
+        senha = request.form.get("senha", "")
+
+        with conectar() as banco:
+            loja = banco.execute(
+                "SELECT * FROM loja WHERE cnpj = ?",
+                (cnpj,)
+            ).fetchone()
+
+        if loja is None:
+            flash("CNPJ ou senha incorretos.")
+
+        elif not loja["senha_hash"]:
+            flash("Sua loja antiga precisa ser ativada.")
+            return redirect(url_for("ativar_conta"))
+
+        elif not check_password_hash(loja["senha_hash"], senha):
+            flash("CNPJ ou senha incorretos.")
+
+        else:
+            session.clear()
+            session["loja_id"] = loja["id"]
+
+            flash("Login realizado com sucesso!")
+            return redirect(url_for("pagina_inicial"))
+
+    return render_template("login.html")
+
+
+@app.route("/ativar-conta", methods=["GET", "POST"])
+def ativar_conta():
+    if obter_loja() is not None:
+        return redirect(url_for("pagina_inicial"))
+
+    if request.method == "POST":
+        cnpj = request.form.get("cnpj", "").strip()
+        contato = request.form.get("contato", "").strip()
+        senha = request.form.get("senha", "")
+        confirmar_senha = request.form.get("confirmar_senha", "")
+
+        if not all([cnpj, contato, senha, confirmar_senha]):
+            flash("Preencha todos os campos.")
+
+        elif len(senha) < 8:
+            flash("A senha deve ter pelo menos 8 caracteres.")
+
+        elif senha != confirmar_senha:
+            flash("As senhas não coincidem.")
+
+        else:
+            with conectar() as banco:
+                loja = banco.execute(
+                    """
+                    SELECT * FROM loja
+                    WHERE cnpj = ? AND contato = ?
+                    """,
+                    (cnpj, contato)
+                ).fetchone()
+
+                if loja is None:
+                    flash("CNPJ ou contato não encontrados.")
+
+                elif loja["senha_hash"]:
+                    flash("Essa loja já possui uma senha.")
+                    return redirect(url_for("login"))
+
+                else:
+                    banco.execute(
+                        """
+                        UPDATE loja
+                        SET senha_hash = ?
+                        WHERE id = ?
+                        """,
+                        (
+                            generate_password_hash(senha),
+                            loja["id"]
+                        )
+                    )
+
+                    session.clear()
+                    session["loja_id"] = loja["id"]
+
+                    flash("Conta ativada! Dados preservados.")
+                    return redirect(url_for("pagina_inicial"))
+
+    return render_template("ativar_conta.html")
+
+
+@app.route("/minha-loja", methods=["GET", "POST"])
+@exigir_login
+def minha_loja():
+    loja = obter_loja()
+
+    if request.method == "POST":
+        nome = request.form.get("nome", "").strip()
+        cnpj = request.form.get("cnpj", "").strip()
+        proprietario = request.form.get("proprietario", "").strip()
+        contato = request.form.get("contato", "").strip()
+
+        if not all([nome, cnpj, proprietario, contato]):
+            flash("Preencha todos os campos.")
+            return render_template("minha_loja.html", loja=loja)
+
+        try:
+            with conectar() as banco:
+                banco.execute(
+                    """
+                    UPDATE loja
+                    SET nome = ?, cnpj = ?, proprietario = ?, contato = ?
+                    WHERE id = ?
+                    """,
+                    (
+                        nome, cnpj, proprietario,
+                        contato, loja["id"]
+                    )
+                )
+
+            flash("Dados atualizados com sucesso!")
+            return redirect(url_for("minha_loja"))
+
+        except sqlite3.IntegrityError:
+            flash("Esse CNPJ já está cadastrado.")
+
+    return render_template("minha_loja.html", loja=loja)
+
+
+@app.route("/sair-da-conta", methods=["POST"])
+def sair_da_conta():
+    # Encerra a sessão, mas preserva loja, estoque e produtos.
+    session.clear()
+
+    flash("Você saiu da conta. Seus dados foram preservados.")
+    return redirect(url_for("pagina_inicial"))
+
+
+@app.route("/criar-estoque", methods=["POST"])
+@exigir_login
+def criar_estoque():
+    loja = obter_loja()
+
+    if obter_estoque() is not None:
+        flash("Sua loja já possui um estoque.")
+        return redirect(url_for("inicio"))
+
+    with conectar() as banco:
+        banco.execute(
+            "INSERT INTO estoque (loja_id) VALUES (?)",
+            (loja["id"],)
+        )
+
+    flash("Estoque criado com sucesso!")
+    return redirect(url_for("inicio"))
+
+
+@app.route("/estoque")
+@exigir_login
+def inicio():
+    loja = obter_loja()
+    estoque = obter_estoque()
+
+    if estoque is None:
+        flash("Crie um estoque para começar.")
+        return redirect(url_for("pagina_inicial"))
+
+    with conectar() as banco:
+        produtos = banco.execute(
+            """
+            SELECT * FROM produtos
+            WHERE estoque_id = ?
+            ORDER BY nome
+            """,
+            (estoque["id"],)
+        ).fetchall()
+
+    valor_total_geral = sum(
+        produto["preco"] * produto["quantidade"]
+        for produto in produtos
+    )
+
+    return render_template(
+        "index.html",
+        produtos=produtos,
+        valor_total_geral=valor_total_geral,
+        loja=loja,
+        estoque=estoque
+    )
+
+
+@app.route("/adicionar", methods=["POST"])
+@exigir_login
+def adicionar_produto():
+    estoque = obter_estoque()
+
+    if estoque is None:
+        flash("Crie um estoque antes de adicionar produtos.")
+        return redirect(url_for("pagina_inicial"))
+
+    nome = request.form.get("nome", "").strip()
+
+    try:
+        preco = float(request.form.get("preco", ""))
+        quantidade = int(request.form.get("quantidade", ""))
+
+        if not nome or preco <= 0 or quantidade < 0:
+            raise ValueError
+
+    except ValueError:
+        flash("Confira o nome, o preço e a quantidade.")
+        return redirect(url_for("inicio"))
+
+    try:
+        with conectar() as banco:
+            banco.execute(
+                """
+                INSERT INTO produtos
+                (estoque_id, nome, preco, quantidade)
+                VALUES (?, ?, ?, ?)
+                """,
+                (estoque["id"], nome, preco, quantidade)
+            )
+
+        flash(f"Produto '{nome}' adicionado com sucesso!")
+
+    except sqlite3.IntegrityError:
+        flash("Já existe um produto com esse nome.")
+
+    return redirect(url_for("inicio"))
+
+
+@app.route("/atualizar", methods=["POST"])
+@exigir_login
+def atualizar_produtos():
+    estoque = obter_estoque()
+    nome = request.form.get("nome", "").strip()
+
+    if estoque is None:
+        return redirect(url_for("pagina_inicial"))
+
+    if not nome:
+        flash("Informe o nome do produto.")
+        return redirect(url_for("inicio"))
+
+    try:
+        quantidade = int(request.form.get("quantidade", ""))
+
+        if quantidade <= 0:
+            raise ValueError
+
+    except ValueError:
+        flash("Informe uma quantidade inteira maior que zero.")
+        return redirect(url_for("inicio"))
+
+    with conectar() as banco:
+        cursor = banco.execute(
+            """
+            UPDATE produtos
+            SET quantidade = quantidade + ?
+            WHERE estoque_id = ?
+            AND nome COLLATE NOCASE = ?
+            """,
+            (quantidade, estoque["id"], nome)
+        )
+
+    if cursor.rowcount:
+        flash("Estoque atualizado com sucesso!")
+    else:
+        flash("Produto não encontrado.")
+
+    return redirect(url_for("inicio"))
+
+
+@app.route("/editar/<int:produto_id>", methods=["GET", "POST"])
+@exigir_login
+def editar_produto(produto_id):
+    estoque = obter_estoque()
+
+    if estoque is None:
+        return redirect(url_for("pagina_inicial"))
+
+    with conectar() as banco:
+        produto = banco.execute(
+            """
+            SELECT * FROM produtos
+            WHERE id = ? AND estoque_id = ?
+            """,
+            (produto_id, estoque["id"])
+        ).fetchone()
+
+    if produto is None:
+        flash("Produto não encontrado.")
+        return redirect(url_for("inicio"))
+
+    if request.method == "POST":
+        nome = request.form.get("nome", "").strip()
+
+        try:
+            preco = float(request.form.get("preco", ""))
+            quantidade = int(request.form.get("quantidade", ""))
+
+            if not nome or preco <= 0 or quantidade < 0:
+                raise ValueError
+
+        except ValueError:
+            flash("Confira os dados informados.")
+            return render_template("editar.html", produto=produto)
+
+        try:
+            with conectar() as banco:
+                banco.execute(
+                    """
+                    UPDATE produtos
+                    SET nome = ?, preco = ?, quantidade = ?
+                    WHERE id = ? AND estoque_id = ?
+                    """,
+                    (
+                        nome, preco, quantidade,
+                        produto_id, estoque["id"]
+                    )
+                )
+
+            flash("Produto editado com sucesso!")
+            return redirect(url_for("inicio"))
+
+        except sqlite3.IntegrityError:
+            flash("Já existe outro produto com esse nome.")
+            return render_template("editar.html", produto=produto)
+
+    return render_template("editar.html", produto=produto)
+
+
+@app.route("/deletar/<int:produto_id>", methods=["POST"])
+@exigir_login
+def deletar_produto(produto_id):
+    estoque = obter_estoque()
+
+    if estoque is None:
+        return redirect(url_for("pagina_inicial"))
+
+    with conectar() as banco:
+        cursor = banco.execute(
+            """
+            DELETE FROM produtos
+            WHERE id = ? AND estoque_id = ?
+            """,
+            (produto_id, estoque["id"])
+        )
+
+    if cursor.rowcount:
+        flash("Produto excluído com sucesso!")
+    else:
+        flash("Produto não encontrado.")
+
+    return redirect(url_for("inicio"))
+
+
+iniciar_banco()
+
+if __name__ == "__main__":
+    app.run(
+        host="0.0.0.0",
+        port=5000,
+        debug=True
+    )

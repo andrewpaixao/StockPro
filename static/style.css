@@ -1,0 +1,250 @@
+
+/* ===== CONFIGURAÇÕES GERAIS ===== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --fundo: #080d18;
+    --cartao: #111a2b;
+    --cartao-claro: #17243a;
+    --azul: #3984ff;
+    --azul-hover: #2468db;
+    --texto: #f1f5ff;
+    --texto-secundario: #9baac2;
+    --borda: #263650;
+    --vermelho: #ff5d70;
+}
+
+body {
+    min-height: 100vh;
+    background: radial-gradient(ellipse at top, #132441 0%, var(--fundo) 55%);
+    color: var(--texto);
+    font-family: Inter, "Segoe UI", Arial, sans-serif;
+    line-height: 1.6;
+}
+
+/* ===== CABEÇALHO ===== */
+header {
+    padding: 28px 7%;
+    border-bottom: 1px solid var(--borda);
+    background: rgba(8, 13, 24, 0.88);
+}
+
+header h1 {
+    color: var(--texto);
+    font-size: 30px;
+    letter-spacing: -1px;
+}
+
+header h1 span {
+    color: var(--azul);
+}
+
+header p {
+    color: var(--texto-secundario);
+    margin-top: 4px;
+}
+
+/* ===== CONTEÚDO PRINCIPAL ===== */
+main {
+    width: min(1100px, 90%);
+    margin: 40px auto;
+}
+
+h2 {
+    font-size: 22px;
+    margin-bottom: 18px;
+}
+
+h3 {
+    margin-bottom: 12px;
+}
+
+section {
+    background: linear-gradient(145deg, var(--cartao), #0e1727);
+    border: 1px solid var(--borda);
+    border-radius: 18px;
+    padding: 26px;
+    margin-bottom: 24px;
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.16);
+}
+
+section p {
+    color: var(--texto-secundario);
+}
+
+/* ===== FORMULÁRIOS ===== */
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+label {
+    color: #dbe6fa;
+    font-size: 14px;
+    font-weight: 600;
+    margin-top: 8px;
+}
+
+input,
+select,
+textarea {
+    width: 100%;
+    padding: 13px 15px;
+    background: #0a1221;
+    color: var(--texto);
+    border: 1px solid var(--borda);
+    border-radius: 10px;
+    outline: none;
+    font: inherit;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: var(--azul);
+    box-shadow: 0 0 0 3px rgba(57, 132, 255, 0.15);
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: #72819b;
+}
+
+button,
+.botao {
+    display: inline-block;
+    width: fit-content;
+    padding: 12px 19px;
+    margin-top: 12px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: var(--azul);
+    color: white;
+    font-size: 14px;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+button:hover,
+.botao:hover {
+    background: var(--azul-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(57, 132, 255, 0.2);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+}
+
+thead {
+    background: var(--cartao-claro);
+}
+
+th,
+td {
+    padding: 15px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--borda);
+}
+
+th {
+    color: #a9c9ff;
+    font-size: 13px;
+}
+
+td {
+    color: #e2eafa;
+}
+
+tbody tr:hover {
+    background: rgba(57, 132, 255, 0.06);
+}
+
+a {
+    color: #75aaff;
+    text-decoration: none;
+}
+
+a:hover {
+    color: white;
+}
+
+.alerta {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 4px 8px;
+    border-radius: 7px;
+    background: rgba(255, 93, 112, 0.12);
+    color: #ff8290;
+    font-size: 12px;
+}
+
+.mensagem {
+    padding: 13px 16px;
+    margin-bottom: 18px;
+    border: 1px solid rgba(57, 132, 255, 0.35);
+    border-radius: 10px;
+    background: rgba(57, 132, 255, 0.1);
+    color: #b9d5ff;
+}
+
+button.excluir {
+    background: rgba(255, 93, 112, 0.12);
+    color: #ff8290;
+    border-color: rgba(255, 93, 112, 0.3);
+}
+
+button.excluir:hover {
+    background: #c9364b;
+    color: white;
+}
+
+/* ===== RODAPÉ ===== */
+footer {
+    padding: 25px;
+    text-align: center;
+    color: var(--texto-secundario);
+    border-top: 1px solid var(--borda);
+}
+
+/* ===== CELULAR ===== */
+@media (max-width: 700px) {
+    header {
+        padding: 22px 5%;
+    }
+
+    main {
+        width: 92%;
+        margin: 25px auto;
+    }
+
+    section {
+        padding: 18px;
+    }
+
+    table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    th,
+    td {
+        padding: 12px 10px;
+    }
+
+    button,
+    .botao {
+        max-width: 100%;
+    }
+}

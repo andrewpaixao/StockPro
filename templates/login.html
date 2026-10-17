@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entrar | StockPro</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}">
+</head>
+<body>
+    <header>
+        <h1>Stock<span>Pro</span></h1>
+        <p>Acesse sua loja</p>
+    </header>
+    <main>
+        <section>
+            <h2>Entrar na conta</h2>
+            {% with mensagens = get_flashed_messages() %}
+                {% for mensagem in mensagens %}<p class="mensagem">{{ mensagem }}</p>{% endfor %}
+            {% endwith %}
+            <form method="POST">
+                <label for="cnpj">CNPJ</label>
+                <input id="cnpj" name="cnpj" autocomplete="username" required>
+                <label for="senha">Senha</label>
+                <input id="senha" name="senha" type="password" autocomplete="current-password" required>
+                <button type="submit">Entrar</button>
+            </form>
+            <p><a href="{{ url_for('ativar_conta') }}">Minha loja antiga ainda não tem senha</a></p>
+            <p><a href="{{ url_for('cadastrar_loja') }}">Cadastrar uma nova loja</a></p>
+            <p><a href="{{ url_for('pagina_inicial') }}">Voltar ao início</a></p>
+        </section>
+    </main>
+</body>
+</html>

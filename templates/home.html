@@ -1,0 +1,316 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>StockPro | Gestão inteligente de Estoque</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}">
+</head>
+<body>
+    <header class="navbar">
+        <a href="{{ url_for('pagina_inicial') }}" class="logo">StockPro</a>
+
+        <nav>
+            <a href="{{ url_for('pagina_inicial') }}">Início</a>
+
+            {% if loja %}
+                <a href="{{ url_for('minha_loja') }}">Minha Loja</a>
+            {% endif %}
+
+            {% if estoque %}
+                <a href="{{ url_for('inicio') }}">Meu estoque</a>
+            {% endif %}
+
+            <a href="#sobre">Sobre</a>
+        </nav>
+
+        <div class="navbar-acoes">
+            {% if loja %}
+                <form action="{{ url_for('sair_da_conta') }}" method="POST">
+                    <button type="submit" class="botao botao-nav">
+                        Sair da conta
+                    </button>
+                </form>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="botao botao-nav">
+                    Entrar
+                </a>
+            {% endif %}
+        </div>
+    </header>
+
+    <main>
+        <section class="hero" id="inicio">
+            <div class="hero-texto">
+                <span class="etiqueta">
+                    CONTROLE · ORGANIZAÇÃO · EFICIÊNCIA
+                </span>
+
+                <h1>
+                    Seu estoque sob controle.
+                    <span>Seu negócio em evolução.</span>
+                </h1>
+
+                <p>
+                    O StockPro é um sistema de gerenciamento de estoque
+                    desenvolvido para facilitar o cadastro de produtos,
+                    acompanhar quantidades e controlar o valor das mercadorias.
+                </p>
+
+                <div class="hero-botoes">
+                    {% if loja and estoque %}
+                        <a class="botao" href="{{ url_for('inicio') }}">
+                            Ver meu estoque
+                        </a>
+
+                        <a class="botao botao-secundario"
+                        href="{{ url_for('minha_loja') }}">
+                            Minha Loja
+                        </a>
+
+                    {% elif loja %}
+                        <a class="botao" href="#acoes">
+                            Criar estoque
+                        </a>
+
+                        <a class="botao botao-secundario"
+                        href="{{ url_for('minha_loja') }}">
+                            Minha Loja
+                        </a>
+
+                    {% else %}
+                        <a class="botao"
+                        href="{{ url_for('cadastrar_loja') }}">
+                            Cadastrar minha loja
+                        </a>
+
+                        <a class="botao botao-secundario"
+                        href="{{ url_for('login') }}">
+                            Já tenho uma conta
+                        </a>
+                    {% endif %}
+
+                    <a class="botao botao-secundario" href="#sobre">
+                        Conhecer o StockPro
+                    </a>
+                </div>
+            </div>
+
+            <div class="hero-card">
+                <div class="card-topo">
+                    <span>📊</span>
+                    <span>Sua gestão, simplificada</span>
+                </div>
+
+                <div class="ilustracao">📦</div>
+
+                <h2>Organize. Acompanhe. Evolua.</h2>
+
+                <p>
+                    Tenha seus produtos e informações organizados
+                    em um só lugar.
+                </p>
+
+                <div class="mini-card">
+                    <span>✓</span>
+                    Cadastro de produtos
+                </div>
+
+                <div class="mini-card">
+                    <span>✓</span>
+                    Acompanhamento de quantidades
+                </div>
+
+                <div class="mini-card">
+                    <span>✓</span>
+                    Cálculo do valor em estoque
+                </div>
+            </div>
+        </section>
+
+        <section class="acoes" id="acoes">
+            <div class="secao-titulo">
+                <span class="etiqueta">SEU ESPAÇO DE GESTÃO</span>
+
+                <h2>Vamos começar?</h2>
+
+                <p>
+                    Configure sua loja e organize seus produtos.
+                </p>
+            </div>
+
+            <div class="recursos">
+                <article class="recurso">
+                    <div class="icone">🏪</div>
+
+                    <h3>Minha Loja</h3>
+
+                    {% if loja %}
+                        <p>
+                            <strong>{{ loja['nome'] }}</strong>
+                        </p>
+
+                        <p>
+                            Proprietário: {{ loja['proprietario'] }}
+                        </p>
+
+                        <a class="botao"
+                        href="{{ url_for('minha_loja') }}">
+                            Ver informações da loja
+                        </a>
+                    {% else %}
+                        <p>
+                            Cadastre sua loja para acessar suas informações
+                            e começar a utilizar o StockPro.
+                        </p>
+
+                        <a class="botao"
+                        href="{{ url_for('cadastrar_loja') }}">
+                            Cadastrar loja
+                        </a>
+
+                        <a class="botao botao-secundario"
+                        href="{{ url_for('login') }}">
+                            Entrar na conta
+                        </a>
+                    {% endif %}
+                </article>
+
+                <article class="recurso">
+                    <div class="icone">📦</div>
+
+                    {% if estoque %}
+                        <h3>Meu estoque</h3>
+
+                        <p>
+                            Consulte seus produtos, quantidades
+                            e valores cadastrados.
+                        </p>
+
+                        <a class="botao" href="{{ url_for('inicio') }}">
+                            Ver meu estoque
+                        </a>
+
+                    {% elif loja %}
+                        <h3>Criar estoque</h3>
+
+                        <p>
+                            Crie seu estoque para começar a cadastrar
+                            e organizar seus produtos.
+                        </p>
+
+                        <form action="{{ url_for('criar_estoque') }}"
+                            method="POST">
+                            <button type="submit" class="botao">
+                                Criar estoque
+                            </button>
+                        </form>
+
+                    {% else %}
+                        <h3>Comece seu estoque</h3>
+
+                        <p>
+                            Entre na sua conta ou cadastre uma loja
+                            para começar.
+                        </p>
+
+                    {% endif %}
+                </article>
+            </div>
+        </section>
+
+        <section class="sobre" id="sobre">
+            <div class="secao-titulo">
+                <span class="etiqueta">CONHEÇA NOSSA PROPOSTA</span>
+
+                <h2>Por que usar o StockPro?</h2>
+
+                <p>
+                    Ferramentas essenciais para deixar o controle
+                    do seu estoque mais simples e organizado.
+                </p>
+            </div>
+
+            <div class="recursos">
+                <article class="recurso">
+                    <div class="icone">📦</div>
+
+                    <h3>Controle de produtos</h3>
+
+                    <p>
+                        Cadastre novos produtos e mantenha
+                        as informações organizadas.
+                    </p>
+                </article>
+
+                <article class="recurso">
+                    <div class="icone">📈</div>
+
+                    <h3>Acompanhe quantidades</h3>
+
+                    <p>
+                        Consulte as unidades disponíveis e identifique
+                        produtos com estoque baixo.
+                    </p>
+                </article>
+
+                <article class="recurso">
+                    <div class="icone">💰</div>
+
+                    <h3>Controle de valores</h3>
+
+                    <p>
+                        Consulte os preços dos produtos e o valor total
+                        das mercadorias cadastradas.
+                    </p>
+                </article>
+
+                <article class="recurso">
+                    <div class="icone">⚡</div>
+
+                    <h3>Praticidade</h3>
+
+                    <p>
+                        Realize operações do estoque por meio de uma
+                        interface simples e intuitiva.
+                    </p>
+                </article>
+            </div>
+        </section>
+
+        <section class="chamada">
+            <h2>Pronto para organizar seu estoque?</h2>
+
+            <p>
+                Comece a gerenciar seus produtos pelo StockPro.
+            </p>
+
+            {% if loja and estoque %}
+                <a class="botao" href="{{ url_for('inicio') }}">
+                    Ver meu estoque →
+                </a>
+
+            {% elif loja %}
+                <a class="botao" href="#acoes">
+                    Criar meu estoque →
+                </a>
+
+            {% else %}
+                <a class="botao"
+                href="{{ url_for('cadastrar_loja') }}">
+                    Cadastrar minha loja →
+                </a>
+            {% endif %}
+        </section>
+    </main>
+
+    <footer>
+        <p>
+            © 2026 StockPro — Organização hoje, crescimento amanhã.
+        </p>
+    </footer>
+</body>
+</html>
